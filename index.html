@@ -178,7 +178,7 @@
       }
       else {
         const dice = Math.random();
-        if (dice < 0.35) { changeState('待機'); if(Math.random()<0.2) talk("俺（カミュ）は部屋で静かに過ごしている"); } 
+        if (dice < 0.20) { changeState('待機'); if(Math.random()<0.2) talk("俺（カミュ）は部屋で静かに過ごしている"); } 
         else if (dice < 0.70) { changeState('散歩'); moveRandomly(); if(Math.random()<0.2) talk("俺（カミュ）は部屋を散歩している"); } 
         else if (dice < 0.85) {
           const hobbies = ['読書', 'チェロ', 'ティー'];
@@ -189,7 +189,7 @@
         else { changeState('体調不良'); talk("俺（カミュ）は急に体調を崩し、どんよりと寝込んでいる。強がってはいるが辛そうだ"); }
       }
       updateUI();
-    }, 20000);
+    }, 10000);
 
     // インタラクション：薬（💊）
     document.getElementById('med-btn').addEventListener('click', () => {
