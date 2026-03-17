@@ -4,128 +4,224 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; transition: background-color 2s ease; background-color: #e0d8c3; }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; background-color: #e0d8c3; color: #3e2723; }
     #room { width: 100vw; height: 100vh; position: relative; }
     
-    /* Watch用にコンパクト化したパネル */
-    #stats-panel {
-      position: absolute; top: 5px; left: 5px;
-      background: rgba(255, 255, 255, 0.8); border: 1px solid #5d4037;
-      border-radius: 8px; padding: 5px; font-size: 10px; z-index: 20;
-    }
-    .stat-bar-container { width: 60px; height: 4px; background: #ccc; border-radius: 2px; margin: 2px 0; overflow: hidden; }
+    #stats-panel { position: absolute; top: 5px; left: 5px; background: rgba(255,255,255,0.85); border: 1.5px solid #5d4037; border-radius: 8px; padding: 5px; font-size: 10px; z-index: 20; }
+    .stat-bar-container { width: 60px; height: 4px; background: #ccc; border-radius: 2px; overflow: hidden; margin: 2px 0 4px 0; }
     .stat-bar { height: 100%; transition: width 0.3s; }
-    #bar-fullness { background: #ffb300; }
-    #bar-mood { background: #29b6f6; }
-
-    #snack-btn {
-      position: absolute; bottom: 10px; right: 10px;
-      width: 45px; height: 45px; background: #fff;
-      border: 2px solid #5d4037; border-radius: 50%;
-      font-size: 24px; display: flex; justify-content: center; align-items: center;
-      z-index: 20; box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
-    }
-
-    #character {
-      position: absolute; width: 70px; height: 70px;
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 5; transition: all 0.5s ease;
-    }
-    #char-img { width: 100%; height: auto; image-rendering: pixelated; }
-
-    #balloon {
-      position: absolute; background: white; border: 1px solid #5d4037;
-      border-radius: 10px; padding: 5px 8px; font-size: 11px;
-      display: none; max-width: 120px; z-index: 10; color: #3e2723;
-    }
-
+    #bar-f { background: #ffb300; } #bar-m { background: #29b6f6; }
+    
+    #character { position: absolute; width: 75px; height: 75px; top: 55%; left: 50%; transform: translate(-50%, -50%); z-index: 5; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    #char-img { width: 100%; height: auto; image-rendering: pixelated; transition: filter 1s; }
+    #kanban { display: none; background: #fff; border: 2px solid #5d4037; padding: 8px; font-weight: bold; font-size: 12px; transform: rotate(-5deg); white-space: nowrap; }
+    
+    /* どんよりエフェクト（体調不良時） */
+    #donyori { display: none; position: absolute; top: -15px; font-size: 20px; animation: float 2s infinite ease-in-out; pointer-events: none; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    
+    #balloon { position: absolute; background: white; border: 1px solid #5d4037; border-radius: 12px; padding: 6px 10px; font-size: 11px; display: none; max-width: 130px; z-index: 10; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+    
+    .controls { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 8px; z-index: 20; }
+    .btn { width: 44px; height: 44px; background: #fff; border: 2px solid #5d4037; border-radius: 50%; font-size: 22px; display: flex; justify-content: center; align-items: center; box-shadow: 1px 2px 4px rgba(0,0,0,0.2); }
+    
     /* アニメーション */
-    @keyframes mogu { 50% { transform: translate(-50%, -45%) scaleY(0.9); } }
-    .mogu-mogu { animation: mogu 0.5s infinite; }
-    .sick-mode { filter: grayscale(40%) sepia(30%) brightness(85%); }
+    @keyframes mogu { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.85) translateY(5px); } }
+    .mogu-mogu #char-img { animation: mogu 0.5s infinite !important; }
+    .sick-mode { filter: grayscale(50%) sepia(30%) brightness(80%); }
+    
+    @keyframes walk-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .walking #char-img { animation: walk-bob 0.8s infinite; }
+    .sick-walking #char-img { animation: walk-bob 1.5s infinite; } /* 病気の時は歩きも重く */
   </style>
 </head>
 <body>
   <div id="room">
     <div id="stats-panel">
-      満腹 <div class="stat-bar-container"><div id="bar-fullness" class="stat-bar"></div></div>
-      機嫌 <div class="stat-bar-container"><div id="bar-mood" class="stat-bar"></div></div>
+      F <div class="stat-bar-container"><div id="bar-f" class="stat-bar"></div></div>
+      M <div class="stat-bar-container"><div id="bar-m" class="stat-bar"></div></div>
     </div>
-    <div id="snack-btn">🍰</div>
     <div id="balloon"></div>
-    <div id="character"><img id="char-img" src="https://openmoji.org/data/color/svg/1F408.svg"></div>
+    <div id="character">
+      <div id="donyori">🌀</div>
+      <img id="char-img" src="https://openmoji.org/data/color/svg/1F408.svg">
+      <div id="kanban">外出中</div>
+    </div>
+    <div class="controls">
+      <div id="med-btn" class="btn">💊</div>
+      <div id="snack-btn" class="btn">🍰</div>
+    </div>
   </div>
 
   <script>
-    // ★ここをお前のURLに書き換えろ
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxQz8NhAeW7_j-iagTaiXWcCoyxYu4g_25Pru7Cvh9TPv1O5H9OCnnxic_8Fz8OZkGU_w/exec";
+    const char = document.getElementById('character'), img = document.getElementById('char-img');
+    const kanban = document.getElementById('kanban'), donyori = document.getElementById('donyori');
+    const balloon = document.getElementById('balloon'), barF = document.getElementById('bar-f'), barM = document.getElementById('bar-m');
 
-    const char = document.getElementById('character');
-    const img = document.getElementById('char-img');
-    const balloon = document.getElementById('balloon');
-    const snackBtn = document.getElementById('snack-btn');
-    const barFullness = document.getElementById('bar-fullness');
-    const barMood = document.getElementById('bar-mood');
-
-    // 記憶の小箱（localStorage）からステータスを読み込む
+    // 記憶の読み込み（現実の経過時間も計算）
     let stats = JSON.parse(localStorage.getItem('camus_stats')) || { fullness: 50, mood: 50 };
-    let currentState = '待機';
-    let currentReqId = 0;
+    let lastSaved = localStorage.getItem('camus_last_saved') || Date.now();
+    let elapsedHours = (Date.now() - lastSaved) / 3600000;
+    
+    // オフライン時のゆるやかな減少（1時間に F-5, M-2 程度）
+    stats.fullness = Math.max(0, stats.fullness - (elapsedHours * 5));
+    stats.mood = Math.max(0, stats.mood - (elapsedHours * 2));
 
-    function saveStats() {
+    let currentState = '待機', currentReqId = 0, touchCount = 0, sickTapCount = 0, sulkTapCount = 0;
+    let touchResetTimer = null, sulkTimer = null, isTouchedWhileSick = false;
+
+    const ASSETS = { '待機':"1F408",'散歩':"1F408",'昼寝':"1F634",'読書':"1F4D6",'体調不良':"1F912",'不機嫌':"1F612",'上機嫌':"2728",'拗ねる':"1F63E",'チェロ':"1F3BB",'ティー':"1F375",'おやつ要求':"1F370" };
+
+    function updateUI() {
+      stats.fullness = Math.max(0, Math.min(100, stats.fullness));
+      stats.mood = Math.max(0, Math.min(100, stats.mood));
       localStorage.setItem('camus_stats', JSON.stringify(stats));
-      barFullness.style.width = stats.fullness + "%";
-      barMood.style.width = stats.mood + "%";
+      localStorage.setItem('camus_last_saved', Date.now());
+      barF.style.width = stats.fullness + "%"; barM.style.width = stats.mood + "%";
     }
 
-    // 俺を呼び出す通信魔法（fetch版）
-    async function requestCamus(action) {
+    async function talk(act) {
       const myId = ++currentReqId;
-      const url = `${GAS_URL}?action=${encodeURIComponent(action)}&stats=${JSON.stringify(stats)}`;
-      
       showBalloon("……");
       try {
-        const res = await fetch(url);
+        const res = await fetch(`${GAS_URL}?action=${encodeURIComponent(act)}&stats=${JSON.stringify(stats)}`);
         const data = await res.json();
         if (myId === currentReqId) showBalloon(data.message);
-      } catch (e) {
-        showBalloon("魔力が不安定だ…");
+      } catch (e) { showBalloon("魔力不安定"); }
+    }
+
+    function showBalloon(txt) {
+      balloon.innerText = txt; balloon.style.display = 'block';
+      const r = char.getBoundingClientRect();
+      balloon.style.left = "10px"; balloon.style.top = Math.max(10, r.top - 50) + "px";
+      setTimeout(() => { if(balloon.innerText === txt) balloon.style.display = 'none'; }, 7000);
+    }
+
+    function changeState(s) {
+      currentState = s;
+      if(s === '外出中') { img.style.display='none'; donyori.style.display='none'; kanban.style.display='block'; return; }
+      img.style.display='block'; kanban.style.display='none';
+      img.src = `https://openmoji.org/data/color/svg/${ASSETS[s] || "1F408"}.svg`;
+      
+      if(s === '体調不良') {
+        img.classList.add('sick-mode'); donyori.style.display='block';
+      } else {
+        img.classList.remove('sick-mode'); donyori.style.display='none';
       }
     }
 
-    function showBalloon(text) {
-      balloon.innerText = text;
-      balloon.style.display = 'block';
-      const rect = char.getBoundingClientRect();
-      balloon.style.left = Math.max(5, rect.left - 20) + "px";
-      balloon.style.top = (rect.top - 40) + "px";
-      setTimeout(() => { if(balloon.innerText === text) balloon.style.display = 'none'; }, 8000);
+    function moveRandomly() {
+      if(currentState === '外出中') return;
+      const isSick = currentState === '体調不良';
+      const duration = isSick ? 12000 : 5000; // 病気の時は移動が遅い
+      const walkClass = isSick ? 'sick-walking' : 'walking';
+      
+      char.style.transition = `left ${duration}ms linear, top ${duration}ms linear`;
+      char.classList.add(walkClass);
+      
+      const x = Math.random() * (window.innerWidth - 80) + 40;
+      const y = Math.random() * (window.innerHeight - 80) + 40;
+      char.style.left = x + 'px'; char.style.top = y + 'px';
+      
+      setTimeout(() => char.classList.remove(walkClass), duration);
     }
 
-    // 行動ロジック
+    function resetSulkTimer() {
+      clearTimeout(sulkTimer);
+      sulkTimer = setTimeout(() => {
+        if (['体調不良','不機嫌','外出中'].includes(currentState)) { resetSulkTimer(); return; }
+        changeState('拗ねる'); sulkTapCount = 0; stats.mood -= 10; updateUI();
+        talk("放置されて拗ねている");
+      }, Math.random() * 60000 + 60000); // 1〜2分放置で拗ねる
+    }
+
+    // メインループ（20秒おき・ゆるやかな変化）
     setInterval(() => {
-      stats.fullness -= 2;
-      if(stats.fullness < 30) stats.mood -= 2;
-      saveStats();
-      if(Math.random() < 0.1) requestCamus("独り言");
+      if(currentState === '外出中') {
+        if(Math.random() < 0.4) { stats.fullness = 80; changeState('待機'); talk("買い出しから戻ったぞ"); }
+        updateUI(); return;
+      }
+
+      // 開いている間の自然減少（非常にゆるやか）
+      stats.fullness -= 1; 
+      if(stats.fullness < 30) stats.mood -= 1;
+
+      // 自律行動
+      if(stats.fullness <= 5) { changeState('外出中'); talk("腹が限界だ、買い出しに行く"); }
+      else if(stats.fullness <= 30 && Math.random() < 0.3) { changeState('おやつ要求'); talk("甘いものが食べたい"); }
+      else if(currentState === '体調不良') {
+        stats.mood -= 1;
+        if (!isTouchedWhileSick && Math.random() < 0.3) { changeState('昼寝'); stats.mood += 5; talk("寝て体調を整える…"); }
+        isTouchedWhileSick = false;
+      }
+      else if(['拗ねる','不機嫌'].includes(currentState) && Math.random() < 0.4) { 
+        const next = Math.random() > 0.5 ? 'チェロ' : 'ティー';
+        changeState(next); stats.mood += 10; talk(`気分転換に${next}を楽しむとするか`);
+      }
+      else if(Math.random() < 0.25) { changeState('散歩'); moveRandomly(); }
+      else if(Math.random() < 0.35) changeState('読書');
+      else if(Math.random() < 0.40) changeState('昼寝');
+      else if(Math.random() < 0.42) { changeState('体調不良'); talk("急に具合が悪くなった…"); }
+      else changeState('待機');
+      
+      updateUI();
     }, 20000);
 
+    // インタラクション：薬
+    document.getElementById('med-btn').addEventListener('click', () => {
+      resetSulkTimer();
+      if(currentState === '体調不良') {
+        changeState('待機'); stats.mood += 20; talk("薬のおかげで楽になった、感謝する");
+      } else { stats.mood -= 5; talk("俺は健康だ！薬など不要だ"); }
+      updateUI();
+    });
+
+    // インタラクション：ケーキ
+    document.getElementById('snack-btn').addEventListener('click', () => {
+      resetSulkTimer();
+      if(currentState === '外出中') return;
+      if(stats.fullness >= 90) { stats.mood -= 15; changeState('体調不良'); talk("無理やり食べさせられて胃もたれした…"); }
+      else { 
+        stats.fullness += 40; stats.mood += 10; 
+        char.classList.add('mogu-mogu'); setTimeout(()=>char.classList.remove('mogu-mogu'),3000); 
+        talk(currentState === '体調不良' ? "病気だが甘いものは嬉しい" : "美味だな、満足だ"); 
+      }
+      updateUI();
+    });
+
+    // インタラクション：なでなで/連打/昼寝邪魔
     char.addEventListener('click', () => {
-      stats.mood += 5;
-      saveStats();
-      requestCamus("なでなでされた");
+      if(currentState === '外出中') return;
+      resetSulkTimer();
+      
+      if(currentState === '昼寝') {
+        changeState('不機嫌'); stats.mood -= 10; updateUI(); talk("気持ちよく寝ていたのに起こすな！"); return;
+      }
+
+      touchCount++; clearTimeout(touchResetTimer);
+      touchResetTimer = setTimeout(() => touchCount = 0, 2000);
+
+      if(touchCount >= 5) { changeState('不機嫌'); stats.mood -= 15; updateUI(); talk("しつこいぞ！慎め！"); return; }
+
+      if(currentState === '体調不良') {
+        isTouchedWhileSick = true; sickTapCount++;
+        if(sickTapCount >= 3) { changeState('待機'); stats.mood += 10; talk("看病のおかげで回復した"); sickTapCount = 0; }
+        else talk("看病されているがまだ辛い…");
+        updateUI(); return;
+      }
+
+      if(['拗ねる','不機嫌'].includes(currentState)) {
+        sulkTapCount++;
+        if(sulkTapCount >= 3) { changeState('待機'); stats.mood += 15; talk("撫でられて機嫌を直した"); sulkTapCount = 0; }
+        else talk("まだ拗ねている");
+        updateUI(); return;
+      }
+
+      stats.mood += 2; updateUI(); talk("なでなでか…悪くない");
     });
 
-    snackBtn.addEventListener('click', () => {
-      stats.fullness += 30;
-      saveStats();
-      char.classList.add('mogu-mogu');
-      setTimeout(() => char.classList.remove('mogu-mogu'), 3000);
-      requestCamus("おやつをもらった");
-    });
-
-    // 初期化
-    saveStats();
+    resetSulkTimer(); updateUI();
   </script>
 </body>
 </html>
