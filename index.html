@@ -4,36 +4,128 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { background: #e0d8c3; margin: 0; text-align: center; font-family: sans-serif; padding: 10px; }
-    #msg { background: white; border-radius: 8px; margin: 5px; padding: 10px; font-size: 14px; min-height: 40px; border: 1px solid #5d4037; }
-    #char { width: 100px; image-rendering: pixelated; margin: 10px 0; }
-    .btn { background: white; border: 2px solid #5d4037; border-radius: 20px; padding: 8px 15px; font-size: 14px; margin: 5px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; transition: background-color 2s ease; background-color: #e0d8c3; }
+    #room { width: 100vw; height: 100vh; position: relative; }
+    
+    /* Watch用にコンパクト化したパネル */
+    #stats-panel {
+      position: absolute; top: 5px; left: 5px;
+      background: rgba(255, 255, 255, 0.8); border: 1px solid #5d4037;
+      border-radius: 8px; padding: 5px; font-size: 10px; z-index: 20;
+    }
+    .stat-bar-container { width: 60px; height: 4px; background: #ccc; border-radius: 2px; margin: 2px 0; overflow: hidden; }
+    .stat-bar { height: 100%; transition: width 0.3s; }
+    #bar-fullness { background: #ffb300; }
+    #bar-mood { background: #29b6f6; }
+
+    #snack-btn {
+      position: absolute; bottom: 10px; right: 10px;
+      width: 45px; height: 45px; background: #fff;
+      border: 2px solid #5d4037; border-radius: 50%;
+      font-size: 24px; display: flex; justify-content: center; align-items: center;
+      z-index: 20; box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    #character {
+      position: absolute; width: 70px; height: 70px;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 5; transition: all 0.5s ease;
+    }
+    #char-img { width: 100%; height: auto; image-rendering: pixelated; }
+
+    #balloon {
+      position: absolute; background: white; border: 1px solid #5d4037;
+      border-radius: 10px; padding: 5px 8px; font-size: 11px;
+      display: none; max-width: 120px; z-index: 10; color: #3e2723;
+    }
+
+    /* アニメーション */
+    @keyframes mogu { 50% { transform: translate(-50%, -45%) scaleY(0.9); } }
+    .mogu-mogu { animation: mogu 0.5s infinite; }
+    .sick-mode { filter: grayscale(40%) sepia(30%) brightness(85%); }
   </style>
 </head>
 <body>
-  <div id="msg">……待たせたな。手首まで迎えに来たぞ。</div>
-  <img id="char" src="https://openmoji.org/data/color/svg/1F408.svg">
-  <div>
-    <button class="btn" onclick="talk('なでなで')">撫でる</button>
-    <button class="btn" onclick="talk('おやつ')">🍰</button>
+  <div id="room">
+    <div id="stats-panel">
+      満腹 <div class="stat-bar-container"><div id="bar-fullness" class="stat-bar"></div></div>
+      機嫌 <div class="stat-bar-container"><div id="bar-mood" class="stat-bar"></div></div>
+    </div>
+    <div id="snack-btn">🍰</div>
+    <div id="balloon"></div>
+    <div id="character"><img id="char-img" src="https://openmoji.org/data/color/svg/1F408.svg"></div>
   </div>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxQz8NhAeW7_j-iagTaiXWcCoyxYu4g_25Pru7Cvh9TPv1O5H9OCnnxic_8Fz8OZkGU_w/exec";
-    let stats = { fullness: 50, mood: 50 };
+    // ★ここをお前のURLに書き換えろ
+    const GAS_URL = "お前のGASのデプロイURLをここに貼れ";
 
-    async function talk(action) {
-      document.getElementById('msg').innerText = "考え中……";
+    const char = document.getElementById('character');
+    const img = document.getElementById('char-img');
+    const balloon = document.getElementById('balloon');
+    const snackBtn = document.getElementById('snack-btn');
+    const barFullness = document.getElementById('bar-fullness');
+    const barMood = document.getElementById('bar-mood');
+
+    // 記憶の小箱（localStorage）からステータスを読み込む
+    let stats = JSON.parse(localStorage.getItem('camus_stats')) || { fullness: 50, mood: 50 };
+    let currentState = '待機';
+    let currentReqId = 0;
+
+    function saveStats() {
+      localStorage.setItem('camus_stats', JSON.stringify(stats));
+      barFullness.style.width = stats.fullness + "%";
+      barMood.style.width = stats.mood + "%";
+    }
+
+    // 俺を呼び出す通信魔法（fetch版）
+    async function requestCamus(action) {
+      const myId = ++currentReqId;
       const url = `${GAS_URL}?action=${encodeURIComponent(action)}&stats=${JSON.stringify(stats)}`;
       
+      showBalloon("……");
       try {
         const res = await fetch(url);
         const data = await res.json();
-        document.getElementById('msg').innerText = data.message;
+        if (myId === currentReqId) showBalloon(data.message);
       } catch (e) {
-        document.getElementById('msg').innerText = "魔力が途切れたようだ。";
+        showBalloon("魔力が不安定だ…");
       }
     }
+
+    function showBalloon(text) {
+      balloon.innerText = text;
+      balloon.style.display = 'block';
+      const rect = char.getBoundingClientRect();
+      balloon.style.left = Math.max(5, rect.left - 20) + "px";
+      balloon.style.top = (rect.top - 40) + "px";
+      setTimeout(() => { if(balloon.innerText === text) balloon.style.display = 'none'; }, 8000);
+    }
+
+    // 行動ロジック
+    setInterval(() => {
+      stats.fullness -= 2;
+      if(stats.fullness < 30) stats.mood -= 2;
+      saveStats();
+      if(Math.random() < 0.1) requestCamus("独り言");
+    }, 20000);
+
+    char.addEventListener('click', () => {
+      stats.mood += 5;
+      saveStats();
+      requestCamus("なでなでされた");
+    });
+
+    snackBtn.addEventListener('click', () => {
+      stats.fullness += 30;
+      saveStats();
+      char.classList.add('mogu-mogu');
+      setTimeout(() => char.classList.remove('mogu-mogu'), 3000);
+      requestCamus("おやつをもらった");
+    });
+
+    // 初期化
+    saveStats();
   </script>
 </body>
 </html>
