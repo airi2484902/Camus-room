@@ -7,18 +7,18 @@
     body { margin: 0; overflow: hidden; font-family: sans-serif; background-color: #e0d8c3; color: #3e2723; }
     #room { width: 100vw; height: 100vh; position: relative; }
     
-    /* 上部UIエリアのコンテナ（横並びにするため） */
-    #top-ui { position: absolute; top: 5px; left: 5px; right: 5px; display: flex; gap: 5px; z-index: 30; align-items: stretch; height: 40px; }
+    /* 上部UIエリア（横幅を画面いっぱいから少し引いた値で固定し、Flexboxを強固にする） */
+    #top-ui { position: absolute; top: 5px; left: 5px; width: calc(100vw - 10px); display: flex; gap: 4px; z-index: 30; height: 42px; box-sizing: border-box; }
     
-    /* パラメータ（高さを抑え、幅を固定） */
-    #stats-panel { background: rgba(255,255,255,0.85); border: 1.5px solid #5d4037; border-radius: 6px; padding: 4px; font-size: 9px; width: 55px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; }
+    /* パラメータ（絶対に縮まないように固定幅を設定） */
+    #stats-panel { flex-shrink: 0; width: 55px; background: rgba(255,255,255,0.85); border: 1.5px solid #5d4037; border-radius: 6px; padding: 4px; font-size: 9px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; }
     .stat-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
     .stat-bar-container { width: 35px; height: 3px; background: #ccc; border-radius: 2px; overflow: hidden; margin-left: 2px; }
     .stat-bar { height: 100%; transition: width 0.3s; }
     #bar-f { background: #ffb300; } #bar-m { background: #29b6f6; }
     
-    /* 常時表示の吹き出し（パラメータの右側に配置し、残りの幅を埋める） */
-    #balloon { flex-grow: 1; background: rgba(255,255,255,0.9); border: 1.5px solid #5d4037; border-radius: 6px; padding: 4px 6px; font-size: 10px; box-shadow: 1px 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; overflow: hidden; box-sizing: border-box; }
+    /* 吹き出し（残りの幅を全て使い、絶対に親要素をはみ出さない） */
+    #balloon { flex-grow: 1; min-width: 0; background: rgba(255,255,255,0.9); border: 1.5px solid #5d4037; border-radius: 6px; padding: 4px 6px; font-size: 10px; box-shadow: 1px 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; overflow: hidden; box-sizing: border-box; }
     
     /* キャラクター（z-index: 5） */
     #character { position: absolute; width: 70px; height: 70px; top: 65%; left: 50%; transform: translate(-50%, -50%); z-index: 5; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.2s; }
@@ -122,7 +122,6 @@
       if(s === '体調不良') img.classList.add('sick-mode'); else img.classList.remove('sick-mode');
     }
 
-    // ★行動範囲を「上部UIより下」に制限（横並びにした分、少し上に行けるように調整）
     function moveRandomly() {
       if(currentState === '外出中') return;
       const isSick = currentState === '体調不良';
@@ -131,7 +130,7 @@
       
       const roomW = document.getElementById('room').clientWidth;
       const roomH = document.getElementById('room').clientHeight;
-      const minY = 80; // UIエリア(40px) + 少し余裕
+      const minY = 80;
       
       const x = Math.max(40, Math.min(roomW - 40, Math.random() * roomW));
       const y = Math.max(minY, Math.min(roomH - 50, minY + Math.random() * (roomH - minY - 50)));
@@ -148,46 +147,46 @@
       sulkTimer = setTimeout(() => {
         if (['体調不良','不機嫌','外出中'].includes(currentState)) { resetSulkTimer(); return; }
         changeState('拗ねる'); sulkTapCount = 0; stats.mood -= 10; updateUI();
-        talk("えりに長時間放置されて、俺（カミュ）は拗ねている");
+        talk("俺（カミュ）は、えりに長時間放置されて拗ねている");
       }, Math.random() * 60000 + 60000);
     }
 
     setInterval(() => {
       if(currentState === '外出中') {
-        if(Math.random() < 0.4) { stats.fullness = 80; changeState('待機'); talk("買い出しから戻ったぞ"); }
+        if(Math.random() < 0.4) { stats.fullness = 80; changeState('待機'); talk("俺（カミュ）は買い出しから戻ったぞ"); }
         updateUI(); return;
       }
 
       stats.fullness -= 1; 
       if(stats.fullness < 30) stats.mood -= 1;
 
-      if(stats.fullness <= 5) { changeState('外出中'); talk("空腹で限界だ、買い出しに行く"); }
-      else if(stats.fullness <= 30 && Math.random() < 0.3) { changeState('おやつ要求'); talk("俺（カミュ）は空腹で無性に甘いものが食べたくなり、えりにおやつを要求している"); }
+      if(stats.fullness <= 5) { changeState('外出中'); talk("俺（カミュ）は空腹の限界で、自ら買い出しに出かけた"); }
+      else if(stats.fullness <= 30 && Math.random() < 0.3) { changeState('おやつ要求'); talk("俺（カミュ）は空腹で無性に甘いものが食べたいと、えりに要求している"); }
       else if(['拗ねる','不機嫌'].includes(currentState)) { 
         if (Math.random() < 0.4) {
           const next = Math.random() > 0.5 ? 'チェロ' : 'ティー';
-          changeState(next); stats.mood += 10; talk(`機嫌を直すために${next}を楽しんでいる`);
-        } else if (Math.random() < 0.3) talk(`まだ${currentState}状態だが、えりの様子を気にしている`);
+          changeState(next); stats.mood += 10; talk(`俺（カミュ）は自分で機嫌を直すために${next}を楽しんでいる`);
+        } else if (Math.random() < 0.3) talk(`俺（カミュ）はまだ${currentState}状態だが、えりの様子を気にしている`);
       }
       else if(currentState === '体調不良') {
         stats.mood -= 1;
         if (!isTouchedWhileSick) {
-          if (Math.random() < 0.5) { changeState('昼寝'); stats.mood += 5; talk("カミュは体調不良を治すために自ら昼寝をしている（平気なフリ）"); }
-          else if (Math.random() < 0.3) talk("カミュは体調不良で辛そうにしている（強がっているが少し弱気）");
+          if (Math.random() < 0.5) { changeState('昼寝'); stats.mood += 5; talk("俺（カミュ）は体調不良を治すために自ら昼寝をしている（平気なフリ）"); }
+          else if (Math.random() < 0.3) talk("俺（カミュ）は体調不良で辛そうにしている（強がっているが少し弱気）");
         }
         isTouchedWhileSick = false;
       }
       else {
         const dice = Math.random();
-        if (dice < 0.35) { changeState('待機'); if(Math.random()<0.2) talk("部屋で静かに過ごしている"); } 
-        else if (dice < 0.70) { changeState('散歩'); moveRandomly(); if(Math.random()<0.2) talk("部屋を散歩している"); } 
+        if (dice < 0.35) { changeState('待機'); if(Math.random()<0.2) talk("俺（カミュ）は部屋で静かに過ごしている"); } 
+        else if (dice < 0.70) { changeState('散歩'); moveRandomly(); if(Math.random()<0.2) talk("俺（カミュ）は部屋を散歩している"); } 
         else if (dice < 0.85) {
           const hobbies = ['読書', 'チェロ', 'ティー'];
           const hobby = hobbies[Math.floor(Math.random() * hobbies.length)];
-          changeState(hobby); talk(`優雅に${hobby}を楽しんでいる`);
+          changeState(hobby); talk(`俺（カミュ）は優雅に${hobby}を楽しんでいる`);
         } 
-        else if (dice < 0.96) { changeState('昼寝'); if(Math.random()<0.3) talk("カミュは気持ちよさそうに昼寝している"); } 
-        else { changeState('体調不良'); talk("カミュは急に体調を崩し、どんよりと寝込んでいる。強がってはいるが辛そうだ"); }
+        else if (dice < 0.96) { changeState('昼寝'); if(Math.random()<0.3) talk("俺（カミュ）は気持ちよさそうに昼寝している"); } 
+        else { changeState('体調不良'); talk("俺（カミュ）は急に体調を崩し、どんよりと寝込んでいる。強がってはいるが辛そうだ"); }
       }
       updateUI();
     }, 20000);
@@ -197,8 +196,8 @@
       resetSulkTimer();
       showProp('💊');
       if(currentState === '体調不良' || img.classList.contains('sick-mode')) {
-        changeState('待機'); stats.mood += 20; talk("薬のおかげで楽になった、えりに感謝している");
-      } else { stats.mood -= 5; talk("俺は健康だ！不要な薬を飲まされて怒っている"); }
+        changeState('待機'); stats.mood += 20; talk("俺（カミュ）はえりから薬を貰って楽になり、感謝している");
+      } else { stats.mood -= 5; talk("俺（カミュ）は健康だ！不要な薬を飲まされて怒っている"); }
       updateUI();
     });
 
@@ -207,12 +206,11 @@
       resetSulkTimer();
       if(currentState === '外出中') return;
       showProp('🍰');
-      // ★胃もたれロジック（機嫌-15）
-      if(stats.fullness >= 90) { stats.mood -= 15; changeState('体調不良'); talk("すでに満腹だというのにおやつを無理やり食べさせられ、胃もたれで体調を崩した"); }
+      if(stats.fullness >= 90) { stats.mood -= 15; changeState('体調不良'); talk("俺（カミュ）はすでに満腹だというのにおやつを無理やり食べさせられ、胃もたれで体調を崩した"); }
       else { 
         stats.fullness += 40; stats.mood += 10; 
         char.classList.add('mogu-mogu'); setTimeout(()=>char.classList.remove('mogu-mogu'),3000); 
-        talk(currentState === '体調不良' ? "病気だが甘いものを貰って少し嬉しそう" : "おやつを貢がれて満足げな独り言"); 
+        talk(currentState === '体調不良' ? "俺（カミュ）は病気だが、えりから甘いものを貰って少し嬉しそう" : "俺（カミュ）はえりにおやつを貢がれて満足げだ"); 
       }
       updateUI();
     });
@@ -225,28 +223,28 @@
       char.style.transform = 'translate(-50%, -50%) scale(1.1)';
       setTimeout(() => { char.style.transform = 'translate(-50%, -50%) scale(1)'; }, 200);
       
-      if(currentState === '昼寝') { changeState('不機嫌'); stats.mood -= 10; updateUI(); talk("気持ちよく寝ていたところを、えりに起こされた"); return; }
+      if(currentState === '昼寝') { changeState('不機嫌'); stats.mood -= 10; updateUI(); talk("俺（カミュ）は気持ちよく寝ていたところを、えりに起こされて怒っている"); return; }
 
       touchCount++; clearTimeout(touchResetTimer);
       touchResetTimer = setTimeout(() => touchCount = 0, 2000);
 
-      if(touchCount >= 5) { changeState('不機嫌'); stats.mood -= 15; updateUI(); talk("えりにしつこく身体をつんつん触られすぎて機嫌を損ね、伯爵として厳しく叱っている"); return; }
+      if(touchCount >= 5) { changeState('不機嫌'); stats.mood -= 15; updateUI(); talk("俺（カミュ）はえりにしつこく身体をつんつん触られすぎて機嫌を損ね、伯爵として厳しく叱っている"); return; }
 
       if(currentState === '体調不良') {
         isTouchedWhileSick = true; sickTapCount++;
-        if(sickTapCount >= 3) { changeState('待機'); stats.mood += 10; talk("えりの献身的な看病（複数回のなでなで）のおかげで、ようやく体調が完全に回復した"); sickTapCount = 0; }
-        else talk("えりに看病（なでなで）されているが、まだ体調が優れない（強がりつつも少し気弱）");
+        if(sickTapCount >= 3) { changeState('待機'); stats.mood += 10; talk("俺（カミュ）はえりの献身的な看病（複数回のなでなで）のおかげで、ようやく体調が完全に回復した"); sickTapCount = 0; }
+        else talk("俺（カミュ）はえりに看病（なでなで）されているが、まだ体調が優れない（強がりつつも少し気弱）");
         updateUI(); return;
       }
 
       if(['拗ねる','不機嫌'].includes(currentState)) {
         sulkTapCount++;
-        if(sulkTapCount >= 3) { changeState('待機'); stats.mood += 15; talk("えりに何度も撫でられてようやく機嫌を直した（素直になれないツンデレな態度で）"); sulkTapCount = 0; }
-        else talk("撫でられたがまだ素直になれず拗ねている（気にしていないフリをするツンデレな態度）");
+        if(sulkTapCount >= 3) { changeState('待機'); stats.mood += 15; talk("俺（カミュ）はえりに何度も撫でられてようやく機嫌を直した（素直になれないツンデレな態度で）"); sulkTapCount = 0; }
+        else talk("俺（カミュ）はえりに撫でられたが、まだ素直になれず拗ねている（気にしていないフリをするツンデレな態度）");
         updateUI(); return;
       }
 
-      stats.mood += 2; updateUI(); talk("えりになでなでされて悪くない気分の独り言");
+      stats.mood += 2; updateUI(); talk("俺（カミュ）はえりになでなでされて悪くない気分だ");
     });
 
     resetSulkTimer(); updateUI();
