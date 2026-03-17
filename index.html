@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background: #e0d8c3; margin: 0; text-align: center; font-family: sans-serif; padding: 10px; }
+    #msg { background: white; border-radius: 8px; margin: 5px; padding: 10px; font-size: 14px; min-height: 40px; border: 1px solid #5d4037; }
+    #char { width: 100px; image-rendering: pixelated; margin: 10px 0; }
+    .btn { background: white; border: 2px solid #5d4037; border-radius: 20px; padding: 8px 15px; font-size: 14px; margin: 5px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+  </style>
+</head>
+<body>
+  <div id="msg">……待たせたな。手首まで迎えに来たぞ。</div>
+  <img id="char" src="https://openmoji.org/data/color/svg/1F408.svg">
+  <div>
+    <button class="btn" onclick="talk('なでなで')">撫でる</button>
+    <button class="btn" onclick="talk('おやつ')">🍰</button>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxQz8NhAeW7_j-iagTaiXWcCoyxYu4g_25Pru7Cvh9TPv1O5H9OCnnxic_8Fz8OZkGU_w/exec";
+    let stats = { fullness: 50, mood: 50 };
+
+    async function talk(action) {
+      document.getElementById('msg').innerText = "考え中……";
+      const url = `${GAS_URL}?action=${encodeURIComponent(action)}&stats=${JSON.stringify(stats)}`;
+      
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        document.getElementById('msg').innerText = data.message;
+      } catch (e) {
+        document.getElementById('msg').innerText = "魔力が途切れたようだ。";
+      }
+    }
+  </script>
+</body>
+</html>
